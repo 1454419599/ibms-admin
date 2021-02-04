@@ -51,9 +51,75 @@ export const constantRoutes = [
       path: 'dashboard',
       name: 'Dashboard',
       component: () => import('@/views/dashboard/index'),
-      meta: { title: 'Dashboard', icon: 'dashboard' }
+      meta: { title: '首页', icon: 'dashboard' }
     }]
   },
+
+  {
+    path: '/unit-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'UnitManagement',
+        component: () => import('@/views/unit-management/index'),
+        meta: { title: '单位管理', icon: 'form' }
+      }
+    ]
+  },
+
+  {
+    path: '/user-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'UserManagement',
+        component: () => import('@/views/user-management/index'),
+        meta: { title: '用户管理', icon: 'form' }
+      }
+    ]
+  },
+
+  {
+    path: '/device-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'DeviceManagement',
+        component: () => import('@/views/device-management/index'),
+        meta: { title: '设备管理', icon: 'form' }
+      }
+    ]
+  },
+
+  {
+    path: '/building-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'BuildingManagement',
+        component: () => import('@/views/building-management/index'),
+        meta: { title: '楼宇管理', icon: 'form' }
+      }
+    ]
+  },
+
+  {
+    path: '/model-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'ModelManagement',
+        component: () => import('@/views/model-management/index'),
+        meta: { title: '模型管理', icon: 'form' }
+      }
+    ]
+  },
+
   {
     path: '/example',
     component: Layout,
