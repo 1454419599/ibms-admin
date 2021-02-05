@@ -63,3 +63,15 @@ div:focus {
 .app-container {
   padding: 20px;
 }
+
+.pagination-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.search-box {
+  margin-block-end: 16px;
+}

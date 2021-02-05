@@ -6,16 +6,16 @@
           placeholder="请输入内容"
           v-model="selectValue"
           class="input-with-select"
-          @change="handleSelect"
+          @change="handleSearch"
         >
           <el-button
             slot="append"
             icon="el-icon-search"
-            @click="handleSelect"
+            @click="handleSearch"
           ></el-button>
         </el-input>
       </el-col>
-      <el-button type="primary">添加单位</el-button>
+      <el-button type="primary" @click="handleCreate">添加单位</el-button>
     </el-row>
     <el-table
       v-loading="listLoading"
@@ -68,7 +68,7 @@
       </el-table-column>
 
       <el-table-column label="操作" width="140" align="center">
-        <template slot-scope="{ row }">
+        <template slot-scope="{ row, $index }">
           <el-row>
             <el-col :span="12">
               <abbr title="编辑">
@@ -88,7 +88,7 @@
                 icon="el-icon-delete"
                 icon-color="red"
                 title="确定删除该条数据吗？"
-                @onConfirm="handleDelete(row)"
+                @onConfirm="handleDelete(row, $index)"
               >
                 <abbr title="删除" slot="reference">
                   <el-button type="danger" size="mini" icon="el-icon-delete"/>
@@ -134,6 +134,7 @@
         <el-button @click="dialogFormVisible = false"> 取消 </el-button>
         <el-button
           type="primary"
+          :loading="dialogFormSobmitLoading"
           @click="dialogStatus === 'create' ? createData() : updateData()"
         >
           保存
@@ -162,6 +163,7 @@ export default {
       list: null,
       listLoading: true,
       dialogFormVisible: false,
+      dialogFormSobmitLoading: false,
       selectValue: "",
       textMap: {
         update: "修改单位",
@@ -181,17 +183,6 @@ export default {
       dialogStatus: "",
       unitLeaderOptions: ["张三", "李四"],
       rules: {
-        type: [
-          { required: true, message: "type is required", trigger: "change" },
-        ],
-        timestamp: [
-          {
-            type: "date",
-            required: true,
-            message: "timestamp is required",
-            trigger: "change",
-          },
-        ],
         unitName: [
           { required: true, message: "单位名称不能为空", trigger: "blur" },
         ],
@@ -217,25 +208,37 @@ export default {
     },
     handleUpdate(row) {
       this.temp = Object.assign({}, row); // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp);
       this.dialogStatus = "update";
       this.dialogFormVisible = true;
       this.$nextTick(() => {
         this.$refs["dataForm"].clearValidate();
       });
     },
-    handleSelect() {
+    handleCreate() {
+      this.dialogStatus = "create";
+      this.dialogFormVisible = true;
+      this.$nextTick(() => {
+        this.$refs["dataForm"].clearValidate();
+      });
+    },
+    handleSearch() {
       console.log(this.selectValue);
     },
-    handleDelete(data) {
-
+    handleDelete(data, index) {
       console.log("asdsf");
       console.log(data);
-      
+      this.$notify({
+        title: 'Success',
+        message: 'Delete Successfully',
+        type: 'success',
+        duration: 2000
+      })
+      this.list.splice(index, 1)
     },
     updateData() {
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
+          this.dialogFormSobmitLoading = true;
           const tempData = Object.assign({}, this.temp);
           tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
           this.$notify({
@@ -258,6 +261,33 @@ export default {
         }
       });
     },
+    createData() {
+      this.$refs["dataForm"].validate((valid) => {
+        console.log(valid);
+        if (valid) {
+          this.dialogFormSobmitLoading = true;
+          const tempData = Object.assign({}, this.temp);
+          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
+          this.$notify({
+            title: "Success",
+            message: "Update Successfully",
+            type: "success",
+            duration: 2000,
+          });
+          // updateArticle(tempData).then(() => {
+          //   const index = this.list.findIndex(v => v.id === this.temp.id)
+          //   this.list.splice(index, 1, this.temp)
+          //   this.dialogFormVisible = false
+          //   this.$notify({
+          //     title: 'Success',
+          //     message: 'Update Successfully',
+          //     type: 'success',
+          //     duration: 2000
+          //   })
+          // })
+        }
+      });
+    }
   },
 };
 </script>
