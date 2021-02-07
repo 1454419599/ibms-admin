@@ -65,13 +65,15 @@
 </template>
 
 <script>
-import { validUsername } from "@/utils/validate";
+// import { validUsername } from "@/utils/validate";
+import { getUserName, setUserName, removeUserName, getPassword, setPassword, removePassword } from '@/utils/auth'
 
 export default {
   name: "Login",
   data() {
     const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
+      // if (!validUsername(value)) {
+      if (!value) {
         callback(new Error("请输入用户名"));
       } else {
         callback();
@@ -84,17 +86,19 @@ export default {
         callback();
       }
     };
+    const username = getUserName();
+    const password = getPassword();
     return {
       loginForm: {
-        username: "admin",
-        password: "111111",
+        username: username,
+        password: password,
       },
       loginRules: {
         username: [
           { required: true, trigger: "blur", validator: validateUsername },
         ],
         password: [
-          { required: true, trigger: "blur", validator: validatePassword },
+          { required: true, trigger: "blur", message: "密码不能为空", },
         ],
       },
       loading: false,
@@ -126,10 +130,18 @@ export default {
       this.$refs.loginForm.validate((valid) => {
         if (valid) {
           this.loading = true;
+          let isSave = this.checked;
           this.$store
             .dispatch("user/login", this.loginForm)
             .then(() => {
-              this.$router.push({ path: this.redirect || "/" });
+              if (isSave) {
+                setUserName(this.loginForm.username);
+                setPassword(this.loginForm.password);
+              } else {
+                removeUserName();
+                removePassword();
+              }
+              this.$router.push({ path: this.redirect || "/", query: this.otherQuery });
               this.loading = false;
             })
             .catch(() => {

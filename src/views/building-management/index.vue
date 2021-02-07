@@ -6,11 +6,19 @@
           :props="props"
           :load="loadNode"
           lazy
+          highlight-current
           @node-click="handleNodeClick"
         >
         </el-tree>
       </el-col>
       <el-col :span="18">
+        <el-row>
+          <el-col>
+            <el-breadcrumb class="breadcrumb-box" separator="/">
+              <el-breadcrumb-item v-for="item in breadcrumbList" :key="item">{{item}}</el-breadcrumb-item>
+            </el-breadcrumb>
+          </el-col>
+        </el-row>
         <el-row type="flex" justify="space-between" class="search-box">
           <el-col :span="12">
             <el-input
@@ -26,7 +34,7 @@
               ></el-button>
             </el-input>
           </el-col>
-          <el-button type="primary" @click="handleCreate">添加设备</el-button>
+          <el-button type="primary" :disabled="selectItem.type === undefined" @click="handleCreate">添加{{typeName}}</el-button>
         </el-row>
         <el-table
           v-loading="listLoading"
@@ -106,7 +114,7 @@
         </el-table>
 
         <el-dialog
-          :title="textMap[dialogStatus]"
+          :title="dialogTitle"
           :visible.sync="dialogFormVisible"
         >
           <el-form
@@ -117,25 +125,26 @@
             label-width="120px"
             style="width: 400px; margin-left: 30px"
           >
-            <el-form-item label="产品" prop="product">
+            <el-form-item label="名称" prop="name">
+              <el-input
+                v-model="temp.name"
+                placeholder="请输入名称"
+              />
+            </el-form-item>
+            <el-form-item label="类型" prop="type">
               <el-select
-                v-model="temp.product"
+                v-model="temp.type"
                 class="filter-item"
-                placeholder="请选择产品"
+                disabled
+                placeholder="请选择类型"
               >
                 <el-option
-                  v-for="item in unitLeaderOptions"
-                  :key="item"
-                  :label="item"
-                  :value="item"
+                  v-for="item in typeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
                 />
               </el-select>
-            </el-form-item>
-            <el-form-item label="DeviceName" prop="deviceName">
-              <el-input
-                v-model="temp.deviceName"
-                placeholder="请输入DeviceName"
-              />
             </el-form-item>
             <el-form-item label="备注名称" prop="noteName">
               <el-input v-model="temp.noteName" placeholder="请输入备注名称" />
@@ -171,6 +180,28 @@ export default {
       return statusMap[status];
     },
   },
+  computed: {
+    typeName() {
+      return this.type2Name(this.selectItem.type);
+    },
+    dialogTitle() {
+      return `${this.dialogStatus == 'create' ? '添加' : '修改'}${this.type2Name(this.selectItem.type)}`
+    },
+    breadcrumbList() {
+      let arr = [];
+      if (!this.selectNode) {
+        arr.push("未选择")
+      }
+      let node = this.selectNode || {};
+      do {
+        if (node.parent) {
+          arr.unshift(node.data.name);
+        }
+        node = node.parent;
+      } while (node && node.parent);
+      return arr;
+    }
+  },
   data() {
     return {
       list: null,
@@ -178,25 +209,26 @@ export default {
       dialogFormVisible: false,
       dialogFormSobmitLoading: false,
       selectValue: "",
-      textMap: {
-        update: "修改设备",
-        create: "添加设备",
-      },
+      selectItem: {},
+      selectNode: undefined,
       temp: {
         id: undefined,
-        product: "",
-        deviceName: "",
-        noteName: "",
-        timestamp: new Date(),
-        title: "",
+        name: "",
         type: "",
-        status: "published",
+        noteName: "",
       },
       dialogStatus: "",
-      unitLeaderOptions: ["张三", "李四"],
+      typeOptions: [
+        {label: '楼宇', value: 1},
+        {label: '楼层', value: 2},
+        {label: '房间', value: 3},
+      ],
       rules: {
-        product: [
-          { required: true, message: "单位名称不能为空", trigger: "blur" },
+        name: [
+          { required: true, message: "名称不能为空", trigger: "blur" },
+        ],
+        type: [
+          { required: true, message: "类型不能为空", trigger: "blur" },
         ],
         noteName: [
           { required: true, message: "备注名称不能为空", trigger: "blur" },
@@ -206,7 +238,7 @@ export default {
         label: "name",
         children: "zones",
         isLeaf: (data) => {
-          return data.count > 6;
+          return data.type === 3;
         },
       },
       count: 1,
@@ -216,43 +248,35 @@ export default {
     this.fetchData();
   },
   methods: {
-    handleNodeClick(data) {
-      console.log(data.name);
+    type2Name(type) {
+      let item = this.typeOptions.find(v => v.value == type);
+      return item ? item.label : '';
+    },
+    handleNodeClick(data, node) {
+      if (this.selectItem.name != data.name) {
+        this.selectItem = data;
+        this.selectNode = node;
+      }
     },
     loadNode(node, resolve) {
       if (node.level === 0) {
-        return resolve([{ name: "region1" }, { name: "region2" }]);
+        return resolve([
+          { name: `${this.count++}栋`, type: 1 }, 
+          { name: `${this.count++}栋`, type: 1 }
+        ]);
       }
-      if (node.level > 3) return resolve([]);
-
-      var hasChild;
-      if (node.data.name === "region1") {
-        hasChild = true;
-      } else if (node.data.name === "region2") {
-        hasChild = false;
-      } else {
-        hasChild = Math.random() > 0.5;
-      }
-
-      setTimeout(() => {
-        var data;
-        if (hasChild) {
-          data = [
-            {
-              name: "zone" + this.count++,
-              count: this.count,
-            },
-            {
-              name: "zone" + this.count++,
-              count: this.count,
-            },
-          ];
-        } else {
-          data = [];
-        }
-
-        resolve(data);
-      }, 500);
+      if (node.level === 1) {
+        return resolve([
+          { name: `${this.count++}F`, type: 2 }, 
+          { name: `${this.count++}F`, type: 2 }
+        ]);
+      } 
+      if (node.level === 2) {
+        return resolve([
+          { name: `${this.count++}室`, type: 3 }, 
+          { name: `${this.count++}室`, type: 3 }
+        ]);
+      } 
     },
     fetchData() {
       this.listLoading = true;
@@ -271,6 +295,9 @@ export default {
     },
     handleCreate() {
       this.dialogStatus = "create";
+      this.temp = {
+        type: this.selectItem.type
+      }
       this.dialogFormVisible = true;
       this.$nextTick(() => {
         this.$refs["dataForm"].clearValidate();
@@ -348,4 +375,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  .breadcrumb-box {
+    margin-block-end: 16px;
+  }
 </style>

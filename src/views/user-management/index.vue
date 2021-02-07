@@ -26,23 +26,23 @@
       highlight-current-row
     >
       <el-table-column align="center" label="序号" width="95">
-        <template slot-scope="scope">
-          {{ scope.$index }}
+        <template slot-scope="{row}">
+          {{ row.id }}
         </template>
       </el-table-column>
       <el-table-column label="用户姓名">
-        <template slot-scope="scope">
-          {{ scope.row.title }}
+        <template slot-scope="{row}">
+          {{ row.name }}
         </template>
       </el-table-column>
       <el-table-column label="登录账号" width="110" align="center">
-        <template slot-scope="scope">
-          <span>{{ scope.row.author }}</span>
+        <template slot-scope="{row}">
+          <span>{{ row.username }}</span>
         </template>
       </el-table-column>
       <el-table-column label="联系电话" width="110" align="center">
-        <template slot-scope="scope">
-          {{ scope.row.pageviews }}
+        <template slot-scope="{row}">
+          {{ row.telephone }}
         </template>
       </el-table-column>
       <el-table-column
@@ -52,8 +52,8 @@
         align="center"
       >
         <template slot-scope="{row}">
-         <el-tag :type="row.status | statusFilter">
-            {{ row.status }}
+         <el-tag :type="row.authorities | authoritiesStatusFilter">
+            {{ row.authorities | authoritiesValueFilter }}
           </el-tag>
         </template>
       </el-table-column>
@@ -63,9 +63,9 @@
         label="创建时间"
         width="200"
       >
-        <template slot-scope="scope">
+        <template slot-scope="{row}">
           <i class="el-icon-time" />
-          <span>{{ scope.row.display_time }}</span>
+          <span>{{ row.createTime }}</span>
         </template>
       </el-table-column>
 
@@ -101,6 +101,14 @@
         </template>
       </el-table-column>
     </el-table>
+    <el-pagination
+      class="pagination-box"
+      background
+      layout="prev, pager, next"
+      :page-size="pageSize"
+      :page-count="page"
+      :total="totalCount">
+    </el-pagination>
 
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form
@@ -111,17 +119,17 @@
         label-width="100px"
         style="width: 400px; margin-left: 30px"
       >
-        <el-form-item label="用户姓名" prop="userName">
-          <el-input v-model="temp.userName" placeholder="请输入用户姓名" />
+        <el-form-item label="用户姓名" prop="name">
+          <el-input v-model="temp.name" placeholder="请输入用户姓名" />
         </el-form-item>
-        <el-form-item label="登录账号" prop="userAccount">
-          <el-input v-model="temp.userAccount" placeholder="请输入登录账号" />
+        <el-form-item label="登录账号" prop="username">
+          <el-input v-model="temp.username" placeholder="请输入登录账号" />
         </el-form-item>
-        <el-form-item label="联系电话" prop="userPhone">
-          <el-input v-model="temp.userPhone" placeholder="请输入登录账户" />
+        <el-form-item label="联系电话" prop="telephone">
+          <el-input v-model="temp.telephone" placeholder="请输入登录账户" />
         </el-form-item>
-        <el-form-item label="登录密码" prop="userPassword">
-          <el-input v-model="temp.userPassword" placeholder="请输入登录密码" />
+        <el-form-item label="登录密码" prop="password">
+          <el-input v-model="temp.password" placeholder="请输入登录密码" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -139,22 +147,34 @@
 </template>
 
 <script>
-import { getList } from "@/api/table";
+import { getUserList, deleteUser, registerUser } from '@/api/user-management'
 
 export default {
   filters: {
-    statusFilter(status) {
-      const statusMap = {
-        published: "success",
-        draft: "gray",
-        deleted: "danger",
-      };
-      return statusMap[status];
+    authoritiesStatusFilter(status) {
+      if (status.length > 0) {
+        switch (status[0].authority) {
+          case 'ROLE_SUPER_ADMIN':
+            return 'danger'
+          case 'ROLE_USER':
+            return 'success'
+        } 
+      }
+      return "info";
+    },
+    authoritiesValueFilter(status) {
+      if (status.length > 0) {
+        return status[0].nameZh
+      }
+      return "未知";
     },
   },
   data() {
     return {
-      list: null,
+      list: [],
+      page: 1,
+      pageSize: 30,
+      totalCount: 0,
       listLoading: true,
       dialogFormVisible: false,
       dialogFormSobmitLoading: false,
@@ -165,28 +185,24 @@ export default {
       },
       temp: {
         id: undefined,
-        userName: "",
-        userAccount: "",
-        userPhone: "",
-        userPassword: "",
-        timestamp: new Date(),
-        title: "",
-        type: "",
-        status: "published",
+        username: "",
+        name: "",
+        telephone: "",
+        password: "",
       },
       dialogStatus: "",
       rules: {
-        userName: [
-          { required: true, message: "单位名称不能为空", trigger: "blur" },
+        username: [
+          { required: true, message: "登录账号不能为空", trigger: "blur" },
         ],
-        userAccount: [
-          { required: true, message: "单位地址不能为空", trigger: "blur" },
+        name: [
+          { required: true, message: "用户姓名不能为空", trigger: "blur" },
         ],
-        userPhone: [
-          { required: true, message: "单位负责人不能为空", trigger: "blur" },
+        telephone: [
+          { required: true, message: "登录账户不能为空", trigger: "blur" },
         ],
-        userPassword: [
-          { required: true, message: "单位负责人不能为空", trigger: "blur" },
+        password: [
+          { required: true, message: "登录密码不能为空", trigger: "blur" },
         ],
       },
     };
@@ -197,9 +213,14 @@ export default {
   methods: {
     fetchData() {
       this.listLoading = true;
-      getList().then((response) => {
-        this.list = response.data.items;
+      getUserList(this.page, this.pageSize).then((response) => {
         this.listLoading = false;
+        const {code, data, msg} = response;
+        if (code === 0) {
+          const {total, list} = data;
+          this.totalCount = total;
+          this.list = list;
+        }
       });
     },
     handleUpdate(row) {
@@ -221,15 +242,19 @@ export default {
       console.log(this.selectValue);
     },
     handleDelete(data, index) {
-      console.log("asdsf");
-      console.log(data);
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
+      const {id, name} = data;
+      deleteUser(id).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          this.$notify({
+            title: '删除成功！',
+            message: `用户 ${name} 已删除`,
+            type: 'success',
+            duration: 3000
+          })
+          this.list.splice(index, 1)
+        }
       })
-      this.list.splice(index, 1)
     },
     updateData() {
       this.$refs["dataForm"].validate((valid) => {
@@ -243,44 +268,28 @@ export default {
             type: "success",
             duration: 2000,
           });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
         }
       });
     },
     createData() {
       this.$refs["dataForm"].validate((valid) => {
-        console.log(valid);
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
-          });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
+          const {name, username, telephone, password} = this.temp;
+          registerUser(name, username, telephone, password).then(res => {
+            this.$notify({
+              title: "用户添加成功",
+              message: `用户 ${name} 创建成功`,
+              type: "success",
+              duration: 3000,
+            });
+            this.dialogFormSobmitLoading = false;
+            this.dialogFormVisible = false;
+            this.fetchData();
+          }).catch(err => {
+            this.dialogFormSobmitLoading = false;
+            this.$notify.error("创建错误！")
+          })
         }
       });
     }

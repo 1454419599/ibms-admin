@@ -1,3 +1,7 @@
+# 资料
+[原型图](https://run.mockplus.cn/w7rakoDBUoIbf6Ba/index.html)
+[api文档]](http://47.107.178.147/apidoc/)
+
 # vue-admin-template
 
 > 这是一个极简的 vue admin 管理后台。它只包含了 Element UI & axios & iconfont & permission control & lint，这些搭建后台必要的东西。

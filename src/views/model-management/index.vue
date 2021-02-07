@@ -321,19 +321,9 @@ export default {
             title: "Success",
             message: "Update Successfully",
             type: "success",
-            duration: 2000,
+            duration: 3000,
           });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
+          this.fetchData();
         }
       });
     }
