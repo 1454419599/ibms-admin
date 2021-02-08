@@ -47,3 +47,28 @@ export function registerUser(name, username, telephone, password) {
     }
   })
 }
+
+/**
+ * 更新用户，支持跟新密码
+ * @param {number} id 用户id
+ * @param {string} name 姓名
+ * @param {string} username 用户名、账号
+ * @param {string} telephone 电话
+ * @param {string} password 密码
+ */
+export function updateUser(id, name, username, telephone, password) {
+  return request({
+    url: '/user',
+    method: 'PUT',
+    customParam: {
+      requestDataType: 'json'
+    },
+    data: {
+      id,
+      name,
+      username,
+      telephone,
+      password
+    }
+  })
+}

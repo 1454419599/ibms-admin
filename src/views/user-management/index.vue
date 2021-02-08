@@ -101,13 +101,15 @@
         </template>
       </el-table-column>
     </el-table>
+
     <el-pagination
       class="pagination-box"
       background
       layout="prev, pager, next"
       :page-size="pageSize"
       :page-count="page"
-      :total="totalCount">
+      :total="totalCount"
+      @current-change="fetchData">
     </el-pagination>
 
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
@@ -147,7 +149,7 @@
 </template>
 
 <script>
-import { getUserList, deleteUser, registerUser } from '@/api/user-management'
+import { getUserList, deleteUser, registerUser, updateUser } from '@/api/user-management'
 
 export default {
   filters: {
@@ -156,6 +158,8 @@ export default {
         switch (status[0].authority) {
           case 'ROLE_SUPER_ADMIN':
             return 'danger'
+          case 'ROLE_ADMIN':
+            return 'warning'
           case 'ROLE_USER':
             return 'success'
         } 
@@ -211,7 +215,10 @@ export default {
     this.fetchData();
   },
   methods: {
-    fetchData() {
+    fetchData(currentPage) {
+      if (currentPage) {
+        this.page = currentPage;
+      }
       this.listLoading = true;
       getUserList(this.page, this.pageSize).then((response) => {
         this.listLoading = false;
@@ -232,6 +239,7 @@ export default {
       });
     },
     handleCreate() {
+      this.temp = {};
       this.dialogStatus = "create";
       this.dialogFormVisible = true;
       this.$nextTick(() => {
@@ -260,14 +268,26 @@ export default {
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
-          });
+          const {id, name, username, telephone, password} = this.temp;
+          updateUser(id, name, username, telephone, password).then(res => {
+            const {code, data, msg} = res;
+            this.dialogFormSobmitLoading = false;
+            if (code === 0) {
+              this.$notify({
+                title: "Success",
+                message: "Update Successfully",
+                type: "success",
+                duration: 2000,
+              });
+              this.dialogFormVisible = false;
+              this.fetchData();
+            } else {
+              this.$notify.info(msg);
+            }
+          }).catch(err => {
+            this.dialogFormSobmitLoading = false;
+            this.$notify.error("更新错误！")
+          })
         }
       });
     },
@@ -277,15 +297,20 @@ export default {
           this.dialogFormSobmitLoading = true;
           const {name, username, telephone, password} = this.temp;
           registerUser(name, username, telephone, password).then(res => {
-            this.$notify({
-              title: "用户添加成功",
-              message: `用户 ${name} 创建成功`,
-              type: "success",
-              duration: 3000,
-            });
+            const {code, data, msg} = res;
             this.dialogFormSobmitLoading = false;
-            this.dialogFormVisible = false;
-            this.fetchData();
+            if (code === 0) {
+              this.$notify({
+                title: "用户添加成功",
+                message: `用户 ${name} 创建成功`,
+                type: "success",
+                duration: 3000,
+              });
+              this.dialogFormVisible = false;
+              this.fetchData();
+            } else {
+              this.$notify.info(msg);
+            }
           }).catch(err => {
             this.dialogFormSobmitLoading = false;
             this.$notify.error("创建错误！")

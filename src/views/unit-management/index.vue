@@ -26,23 +26,23 @@
       highlight-current-row
     >
       <el-table-column align="center" label="序号" width="95">
-        <template slot-scope="scope">
-          {{ scope.$index }}
+        <template slot-scope="{row}">
+          {{ row.id }}
         </template>
       </el-table-column>
       <el-table-column label="单位名称">
-        <template slot-scope="scope">
-          {{ scope.row.title }}
+        <template slot-scope="{row}">
+          {{ row.name }}
         </template>
       </el-table-column>
-      <el-table-column label="单位地址" width="110" align="center">
-        <template slot-scope="scope">
-          <span>{{ scope.row.author }}</span>
+      <el-table-column label="单位地址" align="center">
+        <template slot-scope="{row}">
+          <span>{{ row.site }}</span>
         </template>
       </el-table-column>
       <el-table-column label="单位负责人" width="110" align="center">
-        <template slot-scope="scope">
-          {{ scope.row.pageviews }}
+        <template slot-scope="{row}">
+          {{ row.user.name }}
         </template>
       </el-table-column>
       <el-table-column
@@ -51,19 +51,19 @@
         width="110"
         align="center"
       >
-        <template slot-scope="scope">
-          {{ scope.row.status }}
+        <template slot-scope="{row}">
+          {{ row.user.telephone }}
         </template>
       </el-table-column>
       <el-table-column
         align="center"
         prop="created_at"
         label="创建时间"
-        width="200"
+        width="250"
       >
-        <template slot-scope="scope">
+        <template slot-scope="{row}">
           <i class="el-icon-time" />
-          <span>{{ scope.row.display_time }}</span>
+          <span>{{ row.createTime }}</span>
         </template>
       </el-table-column>
 
@@ -100,6 +100,16 @@
       </el-table-column>
     </el-table>
 
+    <el-pagination
+      class="pagination-box"
+      background
+      layout="prev, pager, next"
+      :page-size="pageSize"
+      :page-count="page"
+      :total="totalCount"
+      @current-change="fetchData">
+    </el-pagination>
+
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form
         ref="dataForm"
@@ -109,11 +119,11 @@
         label-width="100px"
         style="width: 400px; margin-left: 30px"
       >
-        <el-form-item label="单位名称" prop="unitName">
-          <el-input v-model="temp.unitName" placeholder="请输入单位名称" />
+        <el-form-item label="单位名称" prop="name">
+          <el-input v-model="temp.name" placeholder="请输入单位名称" />
         </el-form-item>
-        <el-form-item label="单位地址" prop="unitAddress">
-          <el-input v-model="temp.unitAddress" placeholder="请输入单位地址" />
+        <el-form-item label="单位地址" prop="site">
+          <el-input v-model="temp.site" placeholder="请输入单位地址" />
         </el-form-item>
         <el-form-item label="单位负责人" prop="unitLeader">
           <el-select
@@ -123,9 +133,9 @@
           >
             <el-option
               v-for="item in unitLeaderOptions"
-              :key="item"
-              :label="item"
-              :value="item"
+              :key="item.id"
+              :label="item.username"
+              :value="item.id"
             />
           </el-select>
         </el-form-item>
@@ -145,22 +155,16 @@
 </template>
 
 <script>
-import { getList } from "@/api/table";
+import { getUserList } from '@/api/user-management'
+import { getUnitList, registerUnit, deleteUnit, updateUnit } from "@/api/unit-management";
 
 export default {
-  filters: {
-    statusFilter(status) {
-      const statusMap = {
-        published: "success",
-        draft: "gray",
-        deleted: "danger",
-      };
-      return statusMap[status];
-    },
-  },
   data() {
     return {
       list: null,
+      page: 1,
+      pageSize: 30,
+      totalCount: 0,
       listLoading: true,
       dialogFormVisible: false,
       dialogFormSobmitLoading: false,
@@ -171,22 +175,17 @@ export default {
       },
       temp: {
         id: undefined,
-        unitName: "",
-        unitAddress: "",
+        name: "",
+        site: "",
         unitLeader: "",
-        remark: "",
-        timestamp: new Date(),
-        title: "",
-        type: "",
-        status: "published",
       },
       dialogStatus: "",
-      unitLeaderOptions: ["张三", "李四"],
+      unitLeaderOptions: [],
       rules: {
-        unitName: [
+        name: [
           { required: true, message: "单位名称不能为空", trigger: "blur" },
         ],
-        unitAddress: [
+        site: [
           { required: true, message: "单位地址不能为空", trigger: "blur" },
         ],
         unitLeader: [
@@ -199,15 +198,51 @@ export default {
     this.fetchData();
   },
   methods: {
-    fetchData() {
+    fetchData(currentPage) {
+      if (currentPage) {
+        this.page = currentPage;
+      }
       this.listLoading = true;
-      getList().then((response) => {
-        this.list = response.data.items;
+      getUnitList(this.page, this.pageSize).then((response) => {
+        const {code, data, msg} = response;
+        if (code === 0) {
+          const {total, list} = data;
+          this.list = list;
+          this.totalCount = total;
+        } else {
+          this.$notify.error(msg);
+        }
         this.listLoading = false;
+      }).catch(err => {
+        this.$notify.error("单位信息列表获取失败")
       });
     },
+    getAllUserList() {
+      if (!this.isLoadUserList) {
+        this.isLoadUserList = true;
+        this.singleUserList(1, 30);
+      }
+    },
+    singleUserList(page, pageSize) {
+      getUserList(page, pageSize).then(res => {
+        const {code, data} = res;
+        if (code === 0) {
+          const {list, pages, pageNum} = data
+          list.forEach(element => {
+            this.unitLeaderOptions.push({
+              id: element.id,
+              username: element.name
+            })
+          });
+          if (pageNum < pages) {
+            this.singleUserList(pageNum + 1, pageSize)
+          }
+        }
+      })
+    },
     handleUpdate(row) {
-      this.temp = Object.assign({}, row); // copy obj
+      this.getAllUserList();
+      this.temp = Object.assign({unitLeader: row.userId}, row);
       this.dialogStatus = "update";
       this.dialogFormVisible = true;
       this.$nextTick(() => {
@@ -215,6 +250,8 @@ export default {
       });
     },
     handleCreate() {
+      this.getAllUserList();
+      this.temp = {};
       this.dialogStatus = "create";
       this.dialogFormVisible = true;
       this.$nextTick(() => {
@@ -225,66 +262,71 @@ export default {
       console.log(this.selectValue);
     },
     handleDelete(data, index) {
-      console.log("asdsf");
-      console.log(data);
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
+      const {id, name} = data;
+      deleteUnit(id).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          this.$notify({
+            title: '删除成功！',
+            message: `单位 ” ${name} “ 已删除`,
+            type: 'success',
+            duration: 3000
+          })
+          this.list.splice(index, 1)
+        }
       })
-      this.list.splice(index, 1)
     },
     updateData() {
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
-          });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
+          const {id, name, site, unitLeader} = this.temp;
+          updateUnit(id, site, unitLeader, name).then(res => {
+            this.dialogFormSobmitLoading = false;
+            const {code, msg, data} = res;
+            if (code === 0) {
+              this.$notify({
+                title: "更新单位",
+                message: `成功更新单位：${name}`,
+                type: "success",
+                duration: 3000,
+              });
+              this.fetchData();
+              this.dialogFormVisible = false;
+            } else {
+              this.$notify.info(msg);
+            }
+          }).catch(err => {
+            this.dialogFormSobmitLoading = false;
+            this.$notify.error("更新单位错误！")
+          })
         }
       });
     },
     createData() {
       this.$refs["dataForm"].validate((valid) => {
-        console.log(valid);
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
-          });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
+          const {name, site, unitLeader} = this.temp;
+          registerUnit(site, unitLeader, name).then(res => {
+            this.dialogFormSobmitLoading = false;
+            const {code, msg, data} = res;
+            if (code === 0) {
+              this.$notify({
+                title: "添加单位",
+                message: `成功添加单位：${name}`,
+                type: "success",
+                duration: 3000,
+              });
+              this.fetchData();
+              this.dialogFormVisible = false;
+            } else {
+              this.$notify.info(msg);
+            }
+          }).catch(err => {
+            this.dialogFormSobmitLoading = false;
+            this.$notify.error("创建单位错误！")
+          })
         }
       });
     }

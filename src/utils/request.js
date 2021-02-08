@@ -8,21 +8,21 @@ const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
   // withCredentials: true, // send cookies when cross-domain requests
   timeout: 5000, // request timeout
-  headers: {
-    'Content-Type': 'multipart/form-data;',
-  },
-  transformRequest: [
-    data => {
-      const formData = new FormData();
-      for (const key in data) {
-        if (Object.hasOwnProperty.call(data, key)) {
-          const element = data[key];
-          formData.append(key, element)
-        }
-      }
-      return formData
-    }
-  ]
+  // headers: {
+  //   'Content-Type': 'multipart/form-data;',
+  // },
+  // transformRequest: [
+  //   data => {
+  //     const formData = new FormData();
+  //     for (const key in data) {
+  //       if (Object.hasOwnProperty.call(data, key)) {
+  //         const element = data[key];
+  //         formData.append(key, element)
+  //       }
+  //     }
+  //     return formData
+  //   }
+  // ]
 })
 
 // request interceptor
@@ -34,6 +34,25 @@ service.interceptors.request.use(
       // ['X-Token'] is a custom headers key
       // please modify it according to the actual situation
       config.headers['Authorization'] = `Bearer ${getToken()}`
+    }
+    if (config.method.toUpperCase() !== 'GET' && config.data) {
+      let requestDataType = 'formData';
+      if (config.customParam && config.customParam.requestDataType === 'json') {
+        requestDataType = 'json';
+      }
+      if (requestDataType === 'formData') {
+        const formData = new FormData();
+        for (const key in config.data) {
+          if (Object.hasOwnProperty.call(config.data, key)) {
+            const element = config.data[key];
+            formData.append(key, element)
+          }
+        }
+        config.data = formData;
+        config.headers['Content-Type'] = 'multipart/form-data';
+      } else if (requestDataType === 'json') {
+        config.headers['Content-Type'] = 'application/json';
+      }
     }
     return config
   },
