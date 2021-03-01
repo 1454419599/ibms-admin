@@ -3,10 +3,12 @@
     <el-row>
       <el-col :span="6">
         <el-tree
+          :data="buildingData"
           :props="props"
           :load="loadNode"
           lazy
           highlight-current
+          ref="tree"
           @node-click="handleNodeClick"
         >
         </el-tree>
@@ -34,7 +36,7 @@
               ></el-button>
             </el-input>
           </el-col>
-          <el-button type="primary" :disabled="selectItem.type === undefined" @click="handleCreate">添加{{typeName}}</el-button>
+          <el-button type="primary" :disabled="selectItem.type == 3" @click="handleCreate">添加{{typeName}}</el-button>
         </el-row>
         <el-table
           v-loading="listLoading"
@@ -45,23 +47,23 @@
           highlight-current-row
         >
           <el-table-column align="center" label="序号" width="95">
-            <template slot-scope="scope">
-              {{ scope.$index }}
+            <template slot-scope="{row}">
+              {{ row.id }}
             </template>
           </el-table-column>
-          <el-table-column label="名称">
-            <template slot-scope="scope">
-              {{ scope.row.title }}
+          <el-table-column label="名称" width="250">
+            <template slot-scope="{row}">
+              {{ row.name }}
             </template>
           </el-table-column>
           <el-table-column label="类型" width="110" align="center">
-            <template slot-scope="scope">
-              <span>{{ scope.row.author }}</span>
+            <template slot-scope="{row}">
+              <span>{{ type2Name(row.type) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="备注" width="110" align="center">
-            <template slot-scope="scope">
-              {{ scope.row.pageviews }}
+          <el-table-column label="备注" align="center">
+            <template slot-scope="{row}">
+              {{ row.comment }}
             </template>
           </el-table-column>
           <el-table-column
@@ -70,9 +72,9 @@
             label="创建时间"
             width="200"
           >
-            <template slot-scope="scope">
+            <template slot-scope="{row}">
               <i class="el-icon-time" />
-              <span>{{ scope.row.display_time }}</span>
+              <span>{{ row.createTime }}</span>
             </template>
           </el-table-column>
 
@@ -112,6 +114,16 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <el-pagination
+          class="pagination-box"
+          background
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :page-count="page"
+          :total="totalCount"
+          @current-change="fetchData">
+        </el-pagination>
 
         <el-dialog
           :title="dialogTitle"
@@ -167,7 +179,7 @@
 </template>
 
 <script>
-import { getList } from "@/api/table";
+import { createBuilding, updateBuilding, deleteBuilding, getBuildingList } from "@/api/building-management";
 
 export default {
   filters: {
@@ -182,10 +194,14 @@ export default {
   },
   computed: {
     typeName() {
-      return this.type2Name(this.selectItem.type);
+      let type = this.selectItem.type ? this.selectItem.type + 1 : 1;
+      if (type > 3) {
+        type = 3
+      }
+      return this.type2Name(type);
     },
     dialogTitle() {
-      return `${this.dialogStatus == 'create' ? '添加' : '修改'}${this.type2Name(this.selectItem.type)}`
+      return `${this.dialogStatus == 'create' ? '添加' : '修改'}${this.typeName}`
     },
     breadcrumbList() {
       let arr = [];
@@ -205,6 +221,9 @@ export default {
   data() {
     return {
       list: null,
+      page: 1,
+      pageSize: 30,
+      totalCount: 0,
       listLoading: true,
       dialogFormVisible: false,
       dialogFormSobmitLoading: false,
@@ -238,14 +257,13 @@ export default {
         label: "name",
         children: "zones",
         isLeaf: (data) => {
-          return data.type === 3;
+          return data.type === 3 || data.type === 0;
         },
       },
-      count: 1,
+      buildingData: [
+        { name: `添加楼宇`, type: 0 },
+      ]
     };
-  },
-  created() {
-    this.fetchData();
   },
   methods: {
     type2Name(type) {
@@ -256,37 +274,125 @@ export default {
       if (this.selectItem.name != data.name) {
         this.selectItem = data;
         this.selectNode = node;
+        this.page = 1;
+        if (data.type === 0) {
+          this.list = this.buildingData.slice(1);
+        } else if (data.type === 3) {
+          this.list = node.parent.data.children;
+        } else {
+          this.list = data.children;
+        }
       }
+    },
+    getAllBuildingList(resolve) {
+      this.getSingleBuildingList(1, this.pageSize, resolve);
+    },
+    getSingleBuildingList(page, pageSize, resolve) {
+      getBuildingList(undefined, page, pageSize).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          const {pageNum, pages, list} = data;
+          this.buildingData.push(...list);
+          if (pageNum < pages) {
+            this.getSingleBuildingList(pageNum + 1, pageSize);
+          } else {
+            this.listLoading = false;
+            resolve(this.buildingData)
+            this.list = this.buildingData.slice(1)
+          }
+        }
+      });
+    },
+    getFloorItemAllList(parentId, resolve) {
+      const parent = this.buildingData.find(e => e.id === parentId)
+      if (!(parent && parent.children instanceof Array)) {
+        this.listLoading = true;
+        this.getSingleFloorItemAllList(parentId, 1, this.pageSize, resolve);
+      }
+    },
+    getSingleFloorItemAllList(parentId, page, pageSize, resolve) {
+      getBuildingList(parentId, page, pageSize).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          const {pageNum, pages, list} = data;
+          let parent = this.buildingData.find(e => e.id == parentId);
+          let children = parent.children
+          if (!children) {
+            children = [];
+            this.$set(parent, 'children', children)
+          }
+          children.push(...list);
+          if (pageNum < pages) {
+            this.getSingleFloorItemAllList(parentId, pageNum + 1, pageSize);
+          } else {
+            this.listLoading = false;
+            resolve(children)
+            this.list = children
+          }
+        }
+      });
+    },
+    getRoomItemAllList(grandfatherId, parentId, resolve) {
+      for (let i = 0; i < this.buildingData.length; i++) {
+        if (this.buildingData[i].id == grandfatherId) {
+          const grandfather = this.buildingData[i];
+          for (let j = 0; j < grandfather.length; j++) {
+            if (grandfather[j].id == parentId) {
+              return;
+            }
+          }
+        }
+      }
+      this.listLoading = true;
+      this.getSingleRoomItemAllList(grandfatherId, parentId, 1, this.pageSize, resolve);
+    },
+    getSingleRoomItemAllList(grandfatherId, parentId, page, pageSize, resolve) {
+      getBuildingList(parentId, page, pageSize).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          const {pageNum, pages, list} = data;
+          let grandfather = this.buildingData.find(e => e.id == grandfatherId);
+          
+          let grandfatherChildren = grandfather.children
+          if (!grandfatherChildren) {
+            grandfatherChildren = grandfather.children = []
+          }
+          let parent = grandfatherChildren.find(e => e.id == parentId);
+          let children = parent.children
+          if (!children) {
+            children = []
+            this.$set(parent, 'children', children)
+          }
+          children.push(...list);
+          if (pageNum < pages) {
+            this.getSingleRoomItemAllList(pageNum + 1, pageSize);
+          } else {
+            this.listLoading = false;
+            resolve(children)
+            this.list = children
+          }
+        }
+      });
     },
     loadNode(node, resolve) {
       if (node.level === 0) {
-        return resolve([
-          { name: `${this.count++}栋`, type: 1 }, 
-          { name: `${this.count++}栋`, type: 1 }
-        ]);
-      }
-      if (node.level === 1) {
-        return resolve([
-          { name: `${this.count++}F`, type: 2 }, 
-          { name: `${this.count++}F`, type: 2 }
-        ]);
+        this.getAllBuildingList(resolve);
+        return
+      } else if (node.level === 1) {
+        this.getFloorItemAllList(node.data.id, resolve)
+        return
       } 
       if (node.level === 2) {
-        return resolve([
-          { name: `${this.count++}室`, type: 3 }, 
-          { name: `${this.count++}室`, type: 3 }
-        ]);
+        this.getRoomItemAllList(node.parent.data.id, node.data.id, resolve)
+        return
       } 
     },
-    fetchData() {
-      this.listLoading = true;
-      getList().then((response) => {
-        this.list = response.data.items;
-        this.listLoading = false;
-      });
+    fetchData(currentPage) {
+      
     },
     handleUpdate(row) {
-      this.temp = Object.assign({}, row); // copy obj
+      this.updateItemData = row;
+      this.temp = Object.assign({noteName: row.comment}, row); // copy obj
       this.dialogStatus = "update";
       this.dialogFormVisible = true;
       this.$nextTick(() => {
@@ -295,8 +401,13 @@ export default {
     },
     handleCreate() {
       this.dialogStatus = "create";
+      let type = this.selectItem.type ? this.selectItem.type + 1 : 1;
+      if (type > 3) {
+        type = 3
+      }
       this.temp = {
-        type: this.selectItem.type
+        id: this.selectItem.id,
+        type: type
       }
       this.dialogFormVisible = true;
       this.$nextTick(() => {
@@ -307,66 +418,87 @@ export default {
       console.log(this.selectValue);
     },
     handleDelete(data, index) {
-      console.log("asdsf");
-      console.log(data);
-      this.$notify({
-        title: "Success",
-        message: "Delete Successfully",
-        type: "success",
-        duration: 2000,
-      });
-      this.list.splice(index, 1);
+      const removeItemId = data.id;
+      deleteBuilding(data.id).then(res => {
+        const {code, data, msg} = res;
+        if (code === 0) {
+          this.$notify({
+            title: "Success",
+            message: "删除成功",
+            type: "success",
+            duration: 3000,
+          });
+          this.list.splice(index, 1);
+          let node = this.selectNode.childNodes.find(v => {console.log(v); return v.data.id === removeItemId})
+          this.$refs.tree.remove(node)
+        } else {
+          this.$notify.error(msg)
+        }
+      }).catch(err => {
+        this.$notify.error("删除失败!")
+      })
     },
     updateData() {
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
-          });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
+          const {id, name, noteName} = this.temp;
+          updateBuilding(id, name, noteName).then(res => {
+            this.dialogFormSobmitLoading = false;
+            const {code, data, msg} = res;
+            if (code === 0) {
+              this.$notify({
+                title: "Success",
+                message: "更新成功",
+                type: "success",
+                duration: 3000,
+              });
+              Object.assign(this.updateItemData, {name, comment: noteName})
+              this.dialogFormVisible = false;
+            } else {
+              this.$notify.error(msg)
+            }
+          }).catch(err => {
+            this.$notify.error("更新失败!")
+          })
         }
       });
     },
     createData() {
       this.$refs["dataForm"].validate((valid) => {
-        console.log(valid);
         if (valid) {
           this.dialogFormSobmitLoading = true;
-          const tempData = Object.assign({}, this.temp);
-          tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          this.$notify({
-            title: "Success",
-            message: "Update Successfully",
-            type: "success",
-            duration: 2000,
+          const {id, name, noteName, type} = this.temp;
+          createBuilding(id, name, type, noteName).then(res => {
+            this.dialogFormSobmitLoading = false;
+            const {code, data, msg} = res;
+            if (code === 0) {
+              this.$notify({
+                title: "Success",
+                message: "创建成功",
+                type: "success",
+                duration: 3000,
+              });
+              if (this.selectItem.type > 0) {
+                let children = this.selectItem.children;
+                if (!children) {
+                  children = []
+                  this.$set(this.selectItem, 'children', children)
+                }
+                children.push(data);
+                this.$refs.tree.append(data, this.selectNode)
+                this.list = children;
+              } else {
+                this.buildingData.push(data)
+                this.list = this.buildingData.slice(1);
+              }
+            } else {
+              this.$notify.error(msg);
+            }
+            this.dialogFormVisible = false;
+          }).catch(err => {
+            this.$notify.error("创建失败!")
           });
-          // updateArticle(tempData).then(() => {
-          //   const index = this.list.findIndex(v => v.id === this.temp.id)
-          //   this.list.splice(index, 1, this.temp)
-          //   this.dialogFormVisible = false
-          //   this.$notify({
-          //     title: 'Success',
-          //     message: 'Update Successfully',
-          //     type: 'success',
-          //     duration: 2000
-          //   })
-          // })
         }
       });
     },

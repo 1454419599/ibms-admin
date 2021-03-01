@@ -55,18 +55,18 @@ export const constantRoutes = [
     }]
   },
 
-  {
-    path: '/unit-management',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'UnitManagement',
-        component: () => import('@/views/unit-management/index'),
-        meta: { title: '单位管理', icon: 'form' }
-      }
-    ]
-  },
+  // {
+  //   path: '/unit-management',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: 'UnitManagement',
+  //       component: () => import('@/views/unit-management/index'),
+  //       meta: { title: '单位管理', icon: 'form' }
+  //     }
+  //   ]
+  // },
 
   // {
   //   path: '/user-management',
@@ -125,6 +125,18 @@ export const constantRoutes = [
 ]
 
 export const asyncRoutes = [
+  {
+    path: '/unit-management',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'UnitManagement',
+        component: () => import('@/views/unit-management/index'),
+        meta: { title: '单位管理', icon: 'form', roles: ['admin'] }
+      }
+    ]
+  },
   {
     path: '/user-management',
     component: Layout,

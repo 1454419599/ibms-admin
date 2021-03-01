@@ -76,8 +76,11 @@ const actions = {
               case 'ROLE_SUPER_ADMIN':
                 roles.push('admin');
                 break;
-              case 'ROLE_USER':
+              case 'ROLE_ADMIN':
                 roles.push('unit');
+                break;
+              case 'ROLE_USER':
+                roles.push('user');
                 break;
             }
           });

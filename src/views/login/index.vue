@@ -141,7 +141,8 @@ export default {
                 removeUserName();
                 removePassword();
               }
-              this.$router.push({ path: this.redirect || "/", query: this.otherQuery });
+              // this.$router.push({ path: this.redirect || "/", query: this.otherQuery });
+              this.$router.push({ path: this.redirect || "/" });
               this.loading = false;
             })
             .catch(() => {
