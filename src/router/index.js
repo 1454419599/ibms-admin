@@ -50,7 +50,9 @@ export const constantRoutes = [
     children: [{
       path: 'dashboard',
       name: 'Dashboard',
+      redirect: '/device-management/product-list',
       component: () => import('@/views/dashboard/index'),
+      hidden: true,
       meta: { title: '首页', icon: 'dashboard' }
     }]
   },
@@ -87,25 +89,24 @@ export const constantRoutes = [
     redirect: '/device-management/product-list',
     name: 'DeviceManagement',
     meta: {
-      title: '产品列表',
+      title: '产品'
     },
     children: [
       {
         path: 'product-list',
         name: 'ProductList',
         component: () => import('@/views/device-management/product-list'),
-        meta: { title: '产品列表', icon: 'form' },
+        meta: { title: '产品列表', icon: 'form' }
       },
       {
         path: 'device-list/:productKey',
         name: 'DeviceList',
         hidden: true,
         component: () => import('@/views/device-management/device-list'),
-        meta: { title: '设备管理', icon: 'form' },
-      },
+        meta: { title: '设备管理', icon: 'form' }
+      }
     ]
   },
-
   {
     path: '/building-management',
     component: Layout,
@@ -114,7 +115,7 @@ export const constantRoutes = [
         path: 'index',
         name: 'BuildingManagement',
         component: () => import('@/views/building-management/index'),
-        meta: { title: '楼宇管理', icon: 'form' }
+        meta: { title: '楼宇管理', icon: 'el-icon-s-home' }
       }
     ]
   },
@@ -127,7 +128,7 @@ export const constantRoutes = [
         path: 'index',
         name: 'ModelManagement',
         component: () => import('@/views/model-management/index'),
-        meta: { title: '模型管理', icon: 'form' }
+        meta: { title: '模型管理', icon: 'el-icon-s-platform' }
       }
     ]
   }
@@ -145,7 +146,7 @@ export const asyncRoutes = [
         path: 'index',
         name: 'UnitManagement',
         component: () => import('@/views/unit-management/index'),
-        meta: { title: '单位管理', icon: 'form', roles: ['admin'] }
+        meta: { title: '单位管理', icon: 'el-icon-s-cooperation', roles: ['admin'] }
       }
     ]
   },
@@ -157,7 +158,7 @@ export const asyncRoutes = [
         path: 'index',
         name: 'UserManagement',
         component: () => import('@/views/user-management/index'),
-        meta: { title: '用户管理', icon: 'form', roles: ['admin'] }
+        meta: { title: '用户管理', icon: 'el-icon-user-solid', roles: ['admin'] }
       }
     ]
   },
