@@ -15,7 +15,7 @@
           ></el-button>
         </el-input>
       </el-col>
-      <el-button type="primary" @click="handleCreate">添加模型</el-button>
+      <el-button type="primary" @click="handleCreate">添加产品</el-button>
     </el-row>
     <el-table
       v-loading="listLoading"
@@ -30,19 +30,19 @@
           {{ scope.$index }}
         </template>
       </el-table-column>
-      <el-table-column label="模型名称" align="center">
+      <el-table-column label="产品名称" align="center">
         <template slot-scope="{row}">
           <span>{{ row.productName }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="绑定设备" align="center">
+      <el-table-column label="ProductKey" align="center">
         <template slot-scope="{row}">
           {{ row.productKey }}
         </template>
       </el-table-column>
-      <el-table-column label="所属楼宇" width="140" align="center">
+      <el-table-column label="节点类型" align="center">
         <template slot-scope="{row}">
-          {{ row.pageviews }}
+          {{ row.nodeType | nodeTypeFilter }}
         </template>
       </el-table-column>
       <el-table-column
@@ -61,12 +61,12 @@
         <template slot-scope="{ row, $index }">
           <el-row>
             <el-col :span="12">
-              <abbr title="编辑">
+              <abbr title="管理设备">
                 <el-button
                   type="primary"
                   size="mini"
-                  icon="el-icon-edit"
-                  @click="handleUpdate(row)"
+                  icon="el-icon-s-unfold"
+                  @click="watchProduct(row)"
                 />
               </abbr>
             </el-col>
@@ -147,11 +147,18 @@
 </template>
 
 <script>
-import { getModelList } from "@/api/model-management";
+import { getProductList } from "@/api/device-management";
 import { parseTime } from "@/utils/index"
 
 export default {
   filters: {
+    nodeTypeFilter(type) {
+      const typeMap = {
+        0: '设备',
+        1: '网关',
+      }
+      return typeMap[type]
+    },
     parseTime: parseTime,
   },
   data() {
@@ -244,7 +251,7 @@ export default {
         this.page = currentPage;
       }
       this.listLoading = true;
-      getModelList(this.page, this.pageSize).then((response) => {
+      getProductList(this.page, this.pageSize).then((response) => {
         this.listLoading = false;
         const {code, data, msg} = response;
         if (code === 0) {
@@ -274,6 +281,15 @@ export default {
     },
     handleSearch() {
       console.log(this.selectValue);
+    },
+    watchProduct(data) {
+      console.log(data)
+      this.$router.push({
+        name: 'DeviceList',
+        params: {
+          productKey: data.productKey
+        }
+      })
     },
     handleDelete(data, index) {
       console.log("asdsf");

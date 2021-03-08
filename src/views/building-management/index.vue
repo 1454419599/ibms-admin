@@ -74,7 +74,7 @@
           >
             <template slot-scope="{row}">
               <i class="el-icon-time" />
-              <span>{{ row.createTime }}</span>
+              <span>{{ row.createTime | parseTime }}</span>
             </template>
           </el-table-column>
 
@@ -180,6 +180,7 @@
 
 <script>
 import { createBuilding, updateBuilding, deleteBuilding, getBuildingList } from "@/api/building-management";
+import { parseTime } from "@/utils/index"
 
 export default {
   filters: {
@@ -191,6 +192,7 @@ export default {
       };
       return statusMap[status];
     },
+    parseTime: parseTime,
   },
   computed: {
     typeName() {

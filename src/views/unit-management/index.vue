@@ -63,7 +63,7 @@
       >
         <template slot-scope="{row}">
           <i class="el-icon-time" />
-          <span>{{ row.createTime }}</span>
+          <span>{{ row.createTime | parseTime }}</span>
         </template>
       </el-table-column>
 
@@ -157,8 +157,12 @@
 <script>
 import { getUserList } from '@/api/user-management'
 import { getUnitList, registerUnit, deleteUnit, updateUnit } from "@/api/unit-management";
+import { parseTime } from "@/utils/index"
 
 export default {
+  filters: {
+    parseTime: parseTime,
+  },
   data() {
     return {
       list: null,

@@ -84,13 +84,25 @@ export const constantRoutes = [
   {
     path: '/device-management',
     component: Layout,
+    redirect: '/device-management/product-list',
+    name: 'DeviceManagement',
+    meta: {
+      title: '产品列表',
+    },
     children: [
       {
-        path: 'index',
-        name: 'DeviceManagement',
-        component: () => import('@/views/device-management/index'),
-        meta: { title: '设备管理', icon: 'form' }
-      }
+        path: 'product-list',
+        name: 'ProductList',
+        component: () => import('@/views/device-management/product-list'),
+        meta: { title: '产品列表', icon: 'form' },
+      },
+      {
+        path: 'device-list/:productKey',
+        name: 'DeviceList',
+        hidden: true,
+        component: () => import('@/views/device-management/device-list'),
+        meta: { title: '设备管理', icon: 'form' },
+      },
     ]
   },
 

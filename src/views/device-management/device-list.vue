@@ -15,7 +15,7 @@
           ></el-button>
         </el-input>
       </el-col>
-      <el-button type="primary" @click="handleCreate">添加模型</el-button>
+      <el-button type="primary" @click="handleCreate">添加设备</el-button>
     </el-row>
     <el-table
       v-loading="listLoading"
@@ -30,25 +30,27 @@
           {{ scope.$index }}
         </template>
       </el-table-column>
-      <el-table-column label="模型名称" align="center">
+      <el-table-column label="DeviceName">
         <template slot-scope="{row}">
-          <span>{{ row.productName }}</span>
+          {{ row.deviceName }}
         </template>
       </el-table-column>
-      <el-table-column label="绑定设备" align="center">
+      <el-table-column label="设备所属产品" width="110" align="center">
         <template slot-scope="{row}">
-          {{ row.productKey }}
+          <span>{{ row.deviceType }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="所属楼宇" width="140" align="center">
+      <el-table-column label="状态/启用状态" width="110" align="center">
         <template slot-scope="{row}">
-          {{ row.pageviews }}
+          <el-tag :type="row.deviceStatus | deviceStatusFilter">
+            {{ row.deviceStatus | deviceValueFilter }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column
         align="center"
         prop="created_at"
-        label="创建时间"
+        label="最后上线时间"
         width="200"
       >
         <template slot-scope="{row}">
@@ -89,17 +91,9 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination
-      class="pagination-box"
-      background
-      layout="prev, pager, next"
-      :page-size="40"
-      :total="1000">
-    </el-pagination>
 
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
-        
-        <el-form
+      <el-form
         ref="dataForm"
         :rules="rules"
         :model="temp"
@@ -107,14 +101,11 @@
         label-width="120px"
         style="width: 400px; margin-left: 30px"
       >
-        <el-form-item label="模型名称" prop="modelName">
-          <el-input v-model="temp.modelName" placeholder="请输入模型名称" />
-        </el-form-item>
-        <el-form-item label="绑定设备" prop="product">
+        <el-form-item label="产品" prop="product">
           <el-select
             v-model="temp.product"
             class="filter-item"
-            placeholder="请选择设备"
+            placeholder="请选择产品"
           >
             <el-option
               v-for="item in unitLeaderOptions"
@@ -124,13 +115,13 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="所属楼宇" prop="building">
-          <el-cascader
-            placeholder="请选择所属楼宇 "
-            :options="options"
-            v-model="temp.building">
-          </el-cascader>
+        <el-form-item label="DeviceName" prop="deviceName">
+          <el-input v-model="temp.deviceName" placeholder="请输入DeviceName" />
         </el-form-item>
+        <el-form-item label="备注名称" prop="noteName">
+          <el-input v-model="temp.noteName" placeholder="请输入备注名称" />
+        </el-form-item>
+        
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false"> 取消 </el-button>
@@ -147,11 +138,29 @@
 </template>
 
 <script>
-import { getModelList } from "@/api/model-management";
+import { getDeviceList } from "@/api/device-management";
 import { parseTime } from "@/utils/index"
 
 export default {
   filters: {
+    deviceValueFilter(status) {
+      const valueMap = {
+        ONLINE: "设备在线",
+        OFFLINE: "设备离线",
+        UNACTIVE: "设备未激活",
+        DISABLE: "设备已禁用",
+      };
+      return valueMap[status];
+    },
+    deviceStatusFilter(status) {
+      const statusMap = {
+        ONLINE: "success",//设备在线
+        OFFLINE: "info",//设备离线
+        UNACTIVE: "",//设备未激活
+        DISABLE: "danger",//设备已禁用
+      };
+      return statusMap[status];
+    },
     parseTime: parseTime,
   },
   data() {
@@ -164,14 +173,14 @@ export default {
       dialogFormSobmitLoading: false,
       selectValue: "",
       textMap: {
-        update: "修改模型",
-        create: "添加模型",
+        update: "修改设备",
+        create: "添加设备",
       },
       temp: {
         id: undefined,
         product: "",
-        modelName: "",
-        building: "",
+        deviceName: "",
+        noteName: "",
         timestamp: new Date(),
         title: "",
         type: "",
@@ -179,58 +188,12 @@ export default {
       },
       dialogStatus: "",
       unitLeaderOptions: ["张三", "李四"],
-      options: [
-        {
-          value: 'aa',
-          label: '1栋',
-          children: [
-            {
-              value: 'bb',
-              label: '1F',
-              children: [
-                {
-                  value: 'bb',
-                  label: '1-102',
-                },
-                {
-                  value: 'bb',
-                  label: '1-103',
-                },
-                {
-                  value: 'bb',
-                  label: '1-101',
-                }
-              ],
-            }, {
-              value: 'bb',
-              label: '2F',
-              children: [
-                {
-                  value: 'bb',
-                  label: '1-202',
-                },
-                {
-                  value: 'bb',
-                  label: '1-203',
-                },
-                {
-                  value: 'bb',
-                  label: '1-201',
-                }
-              ]
-            }
-          ]
-        }
-      ],
       rules: {
-        modelName: [
-          { required: true, message: "模型名称不能为空", trigger: "blur" },
-        ],
         product: [
-          { required: true, message: "绑定设备不能为空", trigger: "blur" },
+          { required: true, message: "单位名称不能为空", trigger: "blur" },
         ],
-        building: [
-          { required: true, message: "所属楼宇不能为空", trigger: "blur" },
+        noteName: [
+          { required: true, message: "备注名称不能为空", trigger: "blur" },
         ],
       },
     };
@@ -244,7 +207,7 @@ export default {
         this.page = currentPage;
       }
       this.listLoading = true;
-      getModelList(this.page, this.pageSize).then((response) => {
+      getDeviceList(this.$route.params.productKey, this.page, this.pageSize).then((response) => {
         this.listLoading = false;
         const {code, data, msg} = response;
         if (code === 0) {
@@ -253,7 +216,7 @@ export default {
           // this.list = list;
           this.list = data;
         } else {
-          this.$message.error(msg || "模型列表获取失败！")
+          this.$message.error(msg || "设备列表获取失败！")
         }
       });
     },
@@ -289,7 +252,6 @@ export default {
     updateData() {
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
-          console.log(this.temp)
           this.dialogFormSobmitLoading = true;
           const tempData = Object.assign({}, this.temp);
           tempData.timestamp = +new Date(tempData.timestamp); // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
@@ -324,9 +286,19 @@ export default {
             title: "Success",
             message: "Update Successfully",
             type: "success",
-            duration: 3000,
+            duration: 2000,
           });
-          this.fetchData();
+          // updateArticle(tempData).then(() => {
+          //   const index = this.list.findIndex(v => v.id === this.temp.id)
+          //   this.list.splice(index, 1, this.temp)
+          //   this.dialogFormVisible = false
+          //   this.$notify({
+          //     title: 'Success',
+          //     message: 'Update Successfully',
+          //     type: 'success',
+          //     duration: 2000
+          //   })
+          // })
         }
       });
     }
