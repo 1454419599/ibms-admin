@@ -15,9 +15,9 @@
           ></el-button>
         </el-input>
       </el-col>
-      <el-button type="primary" @click="handleCreate">添加设备</el-button>
+      <!-- <el-button type="primary" @click="handleCreate">添加设备</el-button> -->
     </el-row>
-    <div class="infinite-list-wrapper" style="overflow: auto">
+    <!-- <div class="infinite-list-wrapper" style="overflow: auto"> -->
       <el-table
         v-loading="listLoading"
         :data="list"
@@ -38,7 +38,7 @@
         </el-table-column>
         <el-table-column label="设备所属产品" width="110" align="center">
           <template slot-scope="{ row }">
-            <span>{{ row.deviceType }}</span>
+            <span>{{ row.productName }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态/启用状态" width="110" align="center">
@@ -60,7 +60,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="140" align="center">
+        <!-- <el-table-column label="操作" width="140" align="center">
           <template slot-scope="{ row, $index }">
             <el-row>
               <el-col :span="12">
@@ -94,14 +94,23 @@
               </el-col>
             </el-row>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
 
-      <p v-if="moreLoading" class="text-center">加载中...</p>
+    <el-pagination
+      class="pagination-box"
+      background
+      layout="prev, pager, next"
+      :page-size="pageSize"
+      :page-count="page"
+      :total="totalCount"
+      @current-change="fetchData">
+    </el-pagination>
+      <!-- <p v-if="moreLoading" class="text-center">加载中...</p>
       <p v-if="noMore" class="text-center">没有更多了</p>
-    </div>
+    </div> -->
 
-    <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+    <!-- <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form
         ref="dataForm"
         :rules="rules"
@@ -141,7 +150,7 @@
           保存
         </el-button>
       </div>
-    </el-dialog>
+    </el-dialog> -->
   </div>
 </template>
 
@@ -175,8 +184,9 @@ export default {
     return {
       page: 1,
       pageSize: 30,
+      totalCount: 0,
       moreLoading: false,
-      noMore: false,
+      // noMore: false,
       list: [],
       listLoading: true,
       dialogFormVisible: false,
@@ -211,11 +221,11 @@ export default {
   created() {
     this.fetchData();
   },
-  computed: {
-    disabled () {
-      return this.moreLoading || this.noMore
-    }
-  },
+  // computed: {
+  //   disabled () {
+  //     return this.moreLoading || this.noMore
+  //   }
+  // },
   methods: {
     fetchData(currentPage) {
       if (currentPage) {
@@ -234,8 +244,10 @@ export default {
         this.moreLoading = false;
         const { code, data, msg } = response;
         if (code === 0) {
-          this.list.push(...data)
-          this.noMore = data.length < this.pageSize;
+          const {total, deviceInfo} = data.data;
+          this.totalCount = total;
+          this.list = deviceInfo.map(v => ({...v, productName: this.$route.params.productName}));
+          // this.noMore = currentPage >= data.pageCount;
         } else {
           this.$message.error(msg || "设备列表获取失败！");
         }

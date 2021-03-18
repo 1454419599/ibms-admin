@@ -51,7 +51,7 @@
               {{ row.id }}
             </template>
           </el-table-column>
-          <el-table-column label="名称" width="250">
+          <el-table-column label="名称" align="center">
             <template slot-scope="{row}">
               {{ row.name }}
             </template>
@@ -296,11 +296,11 @@ export default {
           const {pageNum, pages, list} = data;
           this.buildingData.push(...list);
           if (pageNum < pages) {
-            this.getSingleBuildingList(pageNum + 1, pageSize);
+            this.getSingleBuildingList(pageNum + 1, pageSize, resolve);
           } else {
             this.listLoading = false;
-            resolve(this.buildingData)
             this.list = this.buildingData.slice(1)
+            resolve(this.buildingData)
           }
         }
       });
@@ -325,7 +325,7 @@ export default {
           }
           children.push(...list);
           if (pageNum < pages) {
-            this.getSingleFloorItemAllList(parentId, pageNum + 1, pageSize);
+            this.getSingleFloorItemAllList(parentId, pageNum + 1, pageSize, resolve);
           } else {
             this.listLoading = false;
             resolve(children)
@@ -367,7 +367,7 @@ export default {
           }
           children.push(...list);
           if (pageNum < pages) {
-            this.getSingleRoomItemAllList(pageNum + 1, pageSize);
+            this.getSingleRoomItemAllList(grandfatherId, parentId, pageNum + 1, pageSize, resolve);
           } else {
             this.listLoading = false;
             resolve(children)

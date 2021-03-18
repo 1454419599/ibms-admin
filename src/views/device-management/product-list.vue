@@ -15,92 +15,101 @@
           ></el-button>
         </el-input>
       </el-col>
-      <el-button type="primary" @click="handleCreate">添加产品</el-button>
+      <!-- <el-button type="primary" @click="handleCreate">添加产品</el-button> -->
     </el-row>
-    <div class="infinite-list-wrapper" style="overflow: auto">
-      <el-table
-        v-loading="listLoading"
-        :data="list"
-        element-loading-text="Loading"
-        border
-        fit
-        highlight-current-row
-        v-infinite-scroll="load"
-        :infinite-scroll-disabled="disabled"
+    <!-- <div class="infinite-list-wrapper" style="overflow: auto"> -->
+    <el-table
+      v-loading="listLoading"
+      :data="list"
+      element-loading-text="Loading"
+      border
+      fit
+      highlight-current-row
+    >
+      <el-table-column align="center" label="序号" width="95">
+        <template slot-scope="scope">
+          {{ scope.$index }}
+        </template>
+      </el-table-column>
+      <el-table-column label="产品名称" align="center">
+        <template slot-scope="{ row }">
+          <span>{{ row.productName }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="ProductKey" align="center">
+        <template slot-scope="{ row }">
+          {{ row.productKey }}
+        </template>
+      </el-table-column>
+      <el-table-column label="节点类型" align="center">
+        <template slot-scope="{ row }">
+          {{ row.nodeType | nodeTypeFilter }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="created_at"
+        label="创建时间"
+        width="200"
       >
-        <el-table-column align="center" label="序号" width="95">
-          <template slot-scope="scope">
-            {{ scope.$index }}
-          </template>
-        </el-table-column>
-        <el-table-column label="产品名称" align="center">
-          <template slot-scope="{ row }">
-            <span>{{ row.productName }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="ProductKey" align="center">
-          <template slot-scope="{ row }">
-            {{ row.productKey }}
-          </template>
-        </el-table-column>
-        <el-table-column label="节点类型" align="center">
-          <template slot-scope="{ row }">
-            {{ row.nodeType | nodeTypeFilter }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          align="center"
-          prop="created_at"
-          label="创建时间"
-          width="200"
-        >
-          <template slot-scope="{ row }">
-            <i class="el-icon-time" />
-            <span>{{ row.gmtCreate | parseTime }}</span>
-          </template>
-        </el-table-column>
+        <template slot-scope="{ row }">
+          <i class="el-icon-time" />
+          <span>{{ row.gmtCreate | parseTime }}</span>
+        </template>
+      </el-table-column>
 
-        <el-table-column label="操作" width="140" align="center">
-          <template slot-scope="{ row, $index }">
-            <el-row>
-              <el-col :span="12">
-                <abbr title="管理设备">
+      <el-table-column label="操作" width="120" align="center">
+        <template slot-scope="{ row }">
+          <el-row>
+            <el-col :span="24">
+              <abbr title="管理设备">
+                <el-button
+                  type="primary"
+                  size="mini"
+                  icon="el-icon-s-unfold"
+                  @click="watchProduct(row)"
+                />
+              </abbr>
+            </el-col>
+            <!-- <el-col :span="12">
+              <el-popconfirm
+                confirm-button-text="删除"
+                cancel-button-text="取消"
+                confirm-button-type="danger"
+                icon="el-icon-delete"
+                icon-color="red"
+                title="确定删除该条数据吗？"
+                @onConfirm="handleDelete(row, $index)"
+              >
+                <abbr title="删除" slot="reference">
                   <el-button
-                    type="primary"
+                    type="danger"
                     size="mini"
-                    icon="el-icon-s-unfold"
-                    @click="watchProduct(row)"
+                    icon="el-icon-delete"
                   />
                 </abbr>
-              </el-col>
-              <el-col :span="12">
-                <el-popconfirm
-                  confirm-button-text="删除"
-                  cancel-button-text="取消"
-                  confirm-button-type="danger"
-                  icon="el-icon-delete"
-                  icon-color="red"
-                  title="确定删除该条数据吗？"
-                  @onConfirm="handleDelete(row, $index)"
-                >
-                  <abbr title="删除" slot="reference">
-                    <el-button
-                      type="danger"
-                      size="mini"
-                      icon="el-icon-delete"
-                    />
-                  </abbr>
-                </el-popconfirm>
-              </el-col>
-            </el-row>
-          </template>
-        </el-table-column>
-      </el-table>
-      <p v-if="moreLoading" class="text-center">加载中...</p>
-      <p v-if="noMore" class="text-center">没有更多了</p>
-    </div>
+              </el-popconfirm>
+            </el-col> -->
+          </el-row>
+        </template>
+      </el-table-column>
+    </el-table>
 
-    <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+    <el-pagination
+      class="pagination-box"
+      background
+      layout="prev, pager, next"
+      :page-size="pageSize"
+      :page-count="page"
+      :total="totalCount"
+      @current-change="fetchData">
+    </el-pagination>
+
+    <!-- <p v-if="moreLoading" class="text-center">加载中...</p>
+    <p v-if="noMore" class="text-center">没有更多了</p> -->
+    <!-- </div> -->
+
+    <!-- <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form
         ref="dataForm"
         :rules="rules"
@@ -145,7 +154,7 @@
           保存
         </el-button>
       </div>
-    </el-dialog>
+    </el-dialog> -->
   </div>
 </template>
 
@@ -168,8 +177,9 @@ export default {
     return {
       page: 1,
       pageSize: 30,
+      totalCount: 0,
       moreLoading: false,
-      noMore: false,
+      // noMore: false,
       list: [],
       listLoading: true,
       dialogFormVisible: false,
@@ -191,50 +201,6 @@ export default {
       },
       dialogStatus: "",
       unitLeaderOptions: ["张三", "李四"],
-      options: [
-        {
-          value: "aa",
-          label: "1栋",
-          children: [
-            {
-              value: "bb",
-              label: "1F",
-              children: [
-                {
-                  value: "bb",
-                  label: "1-102",
-                },
-                {
-                  value: "bb",
-                  label: "1-103",
-                },
-                {
-                  value: "bb",
-                  label: "1-101",
-                },
-              ],
-            },
-            {
-              value: "bb",
-              label: "2F",
-              children: [
-                {
-                  value: "bb",
-                  label: "1-202",
-                },
-                {
-                  value: "bb",
-                  label: "1-203",
-                },
-                {
-                  value: "bb",
-                  label: "1-201",
-                },
-              ],
-            },
-          ],
-        },
-      ],
       rules: {
         modelName: [
           { required: true, message: "模型名称不能为空", trigger: "blur" },
@@ -249,23 +215,13 @@ export default {
     };
   },
   created() {
-    console.log("created");
     this.fetchData();
   },
-  beforeCreate() {
-    console.log("beforeCreate");
-  },
-  mounted() {
-    console.log("mounted");
-  },
-  destroyed() {
-    console.log("destroyed");
-  },
-  computed: {
-    disabled() {
-      return this.moreLoading || this.noMore;
-    },
-  },
+  // computed: {
+  //   disabled() {
+  //     return this.moreLoading || this.noMore;
+  //   },
+  // },
   methods: {
     fetchData(currentPage) {
       if (currentPage) {
@@ -280,11 +236,9 @@ export default {
         this.moreLoading = false;
         const { code, data, msg } = response;
         if (code === 0) {
-          // const {total, list} = data;
-          // this.totalCount = total;
-          // this.list = list;
-          this.list.push(...data);
-          this.noMore = data.length < this.pageSize;
+          const {total, list, pageCount} = data.data;
+          this.totalCount = total;
+          this.list = list.productInfo;
         } else {
           this.$message.error(msg || "模型列表获取失败！");
         }
@@ -316,6 +270,7 @@ export default {
         name: "DeviceList",
         params: {
           productKey: data.productKey,
+          productName: data.productName,
         },
       });
     },
